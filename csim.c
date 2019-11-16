@@ -17,7 +17,7 @@ typedef struct {
 
 typedef struct {
 	int valid;
-	long long int tag;
+	long long unsigned int tag;
 	long timestamp;
 } cache_line;
 
@@ -44,8 +44,10 @@ int main(int argc, char *argv[])
 	cache_line **cache;
 	char instr[20], buf[20];
 
-	long long int addr, tag;
+	long long unsigned int addr, tag, dist;
 	int block, set;
+
+	int debug = 0;
 
 	int hit = 0, miss = 0, eviction = 0;
 	int is_hit, is_eviction, is_Mhit;
@@ -55,7 +57,7 @@ int main(int argc, char *argv[])
 	char trace_name[32];	// filename of trace input
 	int opt;
 	
-	while ((opt = getopt(argc, argv, "s:E:b:t:hv")) != -1) { 
+	while ((opt = getopt(argc, argv, "s:E:b:t:hvd")) != -1) { 
 		switch(opt) {
 		case 's': cache_prop.s = atoi(optarg); break;
 		case 'E': cache_prop.E = atoi(optarg); break;
@@ -63,6 +65,7 @@ int main(int argc, char *argv[])
 		case 't': strcpy(trace_name, optarg); break;
 		case 'h': print_help(argv); return 0;
 		case 'v': is_verbose = 1; break;
+		case 'd': debug = 1; break;
 		default:
 			printf("\nError: Option '%c' doesn't exists.\n", opt);
 			printf("To check the usage, type option -h\n\n");
@@ -101,16 +104,24 @@ int main(int argc, char *argv[])
 			hit += 1;
 		case 'L':
 		case 'S':
-			addr = strtol(strtok(NULL, " ,"), NULL, 16);
-			block = addr % cache_prop.B_siz;
-			addr /= cache_prop.B_siz;
+			addr = dist = strtol(strtok(NULL, " ,"), NULL, 16);
+			
+			block = dist % cache_prop.B_siz;
+			dist /= cache_prop.B_siz;
+			set = dist % cache_prop.S_siz;
+			dist /= cache_prop.S_siz;
+			tag = dist;
 
-			set = addr % cache_prop.S_siz;
-			addr /= cache_prop.S_siz;
-
-			tag = addr;
-			// printf("b: %d, s: %d, t: %lld\n", block, set, tag);
-			if (block) {}
+			if (debug){
+				printf("┌-> b:  %d, s: %d, t: 0x%llx\n", 
+						block, set, (unsigned long long int)tag);
+				if (addr == 0x7ff000370){
+					for (i = 0; i < cache_prop.E; i++){
+						printf("├-> CACHE %d> v:%d, tag:0x%llx, time:%ld\n",
+							i, cache[set][i].valid, cache[set][i].tag, cache[set][i].timestamp);
+					}
+				}
+			}
 
 			/* To be 'HIT', Search for the given data */
 			for (i = 0; i < cache_prop.E; i++)
