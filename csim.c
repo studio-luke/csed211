@@ -113,14 +113,13 @@ int main(int argc, char *argv[])
 			tag = dist;
 
 			if (debug){
-				printf("┌-> b:  %d, s: %d, t: 0x%llx\n", 
-						block, set, (unsigned long long int)tag);
-				if (addr == 0x7ff000370){
-					for (i = 0; i < cache_prop.E; i++){
+				printf("┌-> [Timestamp %d] b: %d, s: %d, t: 0x%llx\n", cnt, block, set, tag);
+				/*if (addr == 0x7ff000370 || 
+					(block == 0 && set == 2 && (tag == 0x30054 || tag == 0x30051)))
+					for (i = 0; i < cache_prop.E; i++)
 						printf("├-> CACHE %d> v:%d, tag:0x%llx, time:%ld\n",
-							i, cache[set][i].valid, cache[set][i].tag, cache[set][i].timestamp);
-					}
-				}
+							i, cache[set][i].valid, cache[set][i].tag,
+							cache[set][i].timestamp);*/
 			}
 
 			/* To be 'HIT', Search for the given data */
@@ -153,12 +152,15 @@ int main(int argc, char *argv[])
 			min_idx = 0;
 			min = cache[set][min_idx].timestamp;
 			for (i = 0; i < cache_prop.E; i++) {
-				if (min > cache[set][min_idx].timestamp) {
-					min = cache[set][min_idx].timestamp;
+				if (min > cache[set][i].timestamp) {
+					min = cache[set][i].timestamp;
 					min_idx = i;
 				}
 			}
-
+			
+			/*if (debug && block==0 && set==2 && tag==0x30051) 
+				printf("Replacing cahce %d to tag 0x%llx(t=%d)\n", min_idx, tag, min);*/
+			
 			cache[set][min_idx].valid = 1;
 			cache[set][min_idx].tag = tag;
 			cache[set][min_idx].timestamp = cnt;
